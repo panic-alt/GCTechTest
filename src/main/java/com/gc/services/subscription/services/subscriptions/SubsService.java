@@ -1,6 +1,8 @@
 package com.gc.services.subscription.services.subscriptions;
 
+import com.gc.services.subscription.converters.SubscriptionsConverter;
 import com.gc.services.subscription.dtos.SubscriptionDTO;
+import com.gc.services.subscription.dtos.UserSubscriptionDTO;
 import com.gc.services.subscription.entities.NewsCategory;
 import com.gc.services.subscription.entities.Subscription;
 import com.gc.services.subscription.entities.User;
@@ -23,6 +25,7 @@ public class SubsService {
     private final UserRepository userRepository;
     private final SubsRepository subsRepository;
     private final NewsCategoriesRepository newsCategoriesRepository;
+    private final SubscriptionsConverter  subscriptionsConverter;
 
 
     public ResponseEntity<Object> createSubscriptions(SubscriptionDTO subscription) {
@@ -69,5 +72,29 @@ public class SubsService {
         subsRepository.saveAll(newSubscriptions);
 
         return ResponseEntity.ok("ok");
+    }
+
+    public ResponseEntity<Object> getSubscriptions(String phoneNumber) {
+        if (!RegexUtil.validatePhoneNumber(phoneNumber)) {
+            return ResponseEntity.badRequest().body("Invalid phone number");
+        }
+
+        Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
+
+        if (userOpt.isEmpty()) {
+            return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+        }
+
+        User user = userOpt.get();
+
+        List<Subscription> subscriptionList = subsRepository.findAllByUserId(user.getId());
+
+        if (subscriptionList.isEmpty()) {
+            return new ResponseEntity<>("The user does not have any subscriptions", HttpStatus.NOT_FOUND);
+        }
+
+        UserSubscriptionDTO userSubscriptionDTOList = subscriptionsConverter.entityListToDTO(subscriptionList);
+
+        return new ResponseEntity<>(userSubscriptionDTOList, HttpStatus.OK);
     }
 }
