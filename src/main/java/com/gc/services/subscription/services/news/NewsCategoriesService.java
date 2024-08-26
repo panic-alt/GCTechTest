@@ -4,6 +4,7 @@ import com.gc.services.subscription.entities.NewsCategory;
 import com.gc.services.subscription.repositories.NewsCategoriesRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -29,5 +30,11 @@ public class NewsCategoriesService {
 
             newsCategoriesRepository.saveAll(categories);
         }
+    }
+
+    public ResponseEntity<Object> getNewsCategories() {
+        List<NewsCategory> categoryList = newsCategoriesRepository.findAll();
+
+        return ResponseEntity.ok(categoryList);
     }
 }

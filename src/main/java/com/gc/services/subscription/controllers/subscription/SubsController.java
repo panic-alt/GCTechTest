@@ -22,7 +22,7 @@ public class SubsController {
 
     private final SubsService subsService;
 
-    @Operation(summary = "Subscribe an user to news categories", description = "Phone number must follow pattern +(country code)(area code)(phone number). Spaces, dashes and parenthesis are allowed. Existing categories can be queried in endpoint /newsCategories.")
+    @Operation(summary = "Subscribe an user to news categories", description = "Phone number must follow pattern +(country code)(area code)(phone number). Spaces, dashes and parenthesis are allowed. Existing categories can be queried in endpoint /news/categories.")
     @PostMapping("/subscriptions")
     public ResponseEntity<Object> subscribe (@RequestBody SubscriptionDTO subscription) {
         return subsService.createSubscriptions(subscription);
