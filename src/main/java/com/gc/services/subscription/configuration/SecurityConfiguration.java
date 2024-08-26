@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.configurers.HeadersCon
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -20,12 +21,21 @@ public class SecurityConfiguration {
 
    private final JwtAuthenticationFilter jwtAuthenticationFilter;
    private final AuthenticationProvider authenticationProvider;
+   private static final String[] AUTH_WHITELIST = {
+           "/v2/api-docs",
+           "/swagger-resources/**",
+           "/swagger-ui.html",
+           "/webjars/**",
+           "/v3/api-docs/**",
+           "/swagger-ui/**"
+   };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
        http.csrf(csrf -> csrf.disable())
                .authorizeHttpRequests(authRequest -> authRequest
-                       .requestMatchers("/h2-console/**").permitAll()
+                       .requestMatchers(AUTH_WHITELIST).permitAll()
+                       .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
                        .requestMatchers("/auth/**").permitAll()
                        .anyRequest().authenticated()
                ).sessionManagement(sessionManager -> sessionManager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

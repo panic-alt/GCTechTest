@@ -26,28 +26,66 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     public ResponseEntity<Object> login(LoginRequestDTO loginRequestDTO) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequestDTO.getUsername(), loginRequestDTO.getPassword()));
-        UserDetails user =  userRepository.findByUsername(loginRequestDTO.getUsername()).orElseThrow();
-        String token = jwtService.getToken(user);
-        AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
-                .token(token)
-                .build();
-        return ResponseEntity.ok(authResponseDTO);
+        try {
+            if (!validateLogin(loginRequestDTO)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Please make sure to complete all fields");
+            }
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequestDTO.getUsername(), loginRequestDTO.getPassword()));
+            UserDetails user =  userRepository.findByUsername(loginRequestDTO.getUsername()).orElseThrow();
+            String token = jwtService.getToken(user);
+            AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
+                    .token(token)
+                    .build();
+            return ResponseEntity.ok(authResponseDTO);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
+
+    }
+
+    private boolean validateLogin(LoginRequestDTO loginRequestDTO) {
+        if (loginRequestDTO.getUsername() == null || loginRequestDTO.getUsername().isEmpty()) {
+            return false;
+        }
+        return loginRequestDTO.getPassword() != null && !loginRequestDTO.getPassword().isEmpty();
     }
 
     public ResponseEntity<Object> register(RegisterRequestDTO registerRequestDTO) {
-        User newUser = User.builder()
-                .username(registerRequestDTO.getUsername())
-                .password(passwordEncoder.encode(registerRequestDTO.getPassword()))
-                .phoneNumber(registerRequestDTO.getPhoneNumber())
-                .role(Role.USER)
-                .build();
-        userRepository.save(newUser);
+        try {
 
-        AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
-                .token(jwtService.getToken(newUser))
-                .build();
+            if (userRepository.findByUsername(registerRequestDTO.getUsername()).isPresent()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User already exists");
+            }
 
-        return new ResponseEntity<>(authResponseDTO, HttpStatus.OK);
+            if (!validateRegister(registerRequestDTO)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Please make sure to complete all fields");
+            }
+
+            User newUser = User.builder()
+                    .username(registerRequestDTO.getUsername())
+                    .password(passwordEncoder.encode(registerRequestDTO.getPassword()))
+                    .phoneNumber(registerRequestDTO.getPhoneNumber())
+                    .role(Role.USER)
+                    .build();
+            userRepository.save(newUser);
+
+            AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
+                    .token(jwtService.getToken(newUser))
+                    .build();
+
+            return new ResponseEntity<>(authResponseDTO, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    private boolean validateRegister(RegisterRequestDTO registerRequestDTO) {
+        if (registerRequestDTO.getUsername() == null || registerRequestDTO.getUsername().isEmpty()) {
+            return false;
+        }
+        if (registerRequestDTO.getPassword() == null || registerRequestDTO.getPassword().isEmpty()) {
+            return false;
+        }
+        return registerRequestDTO.getPhoneNumber() != null && !registerRequestDTO.getPhoneNumber().isEmpty();
     }
 }
