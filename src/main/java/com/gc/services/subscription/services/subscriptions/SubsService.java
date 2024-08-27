@@ -1,8 +1,9 @@
 package com.gc.services.subscription.services.subscriptions;
 
 import com.gc.services.subscription.converters.SubscriptionsConverter;
+import com.gc.services.subscription.dtos.NewsCategoryDTO;
 import com.gc.services.subscription.dtos.SubscriptionDTO;
-import com.gc.services.subscription.dtos.UserSubscriptionDTO;
+import com.gc.services.subscription.dtos.UserSubscriptionsListDTO;
 import com.gc.services.subscription.entities.NewsCategory;
 import com.gc.services.subscription.entities.Subscription;
 import com.gc.services.subscription.entities.User;
@@ -93,8 +94,48 @@ public class SubsService {
             return new ResponseEntity<>("The user does not have any subscriptions", HttpStatus.NOT_FOUND);
         }
 
-        UserSubscriptionDTO userSubscriptionDTOList = subscriptionsConverter.entityListToDTO(subscriptionList);
+        UserSubscriptionsListDTO dtoResponse =  subscriptionsConverter.entityListToDTOList(subscriptionList);
 
-        return new ResponseEntity<>(userSubscriptionDTOList, HttpStatus.OK);
+        return new ResponseEntity<>(dtoResponse, HttpStatus.OK);
+    }
+
+    public ResponseEntity<Object> deleteSubscription(Long subId, String phoneNumber) {
+        if (!RegexUtil.validatePhoneNumber(phoneNumber)) {
+            return ResponseEntity.badRequest().body("Invalid phone number");
+        }
+
+        Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
+
+        if (userOpt.isEmpty()) {
+            return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+        }
+        User user = userOpt.get();
+
+        List<Subscription> subscriptionList = subsRepository.findAllByUserId(user.getId());
+
+        Subscription subToDelete = subscriptionList.stream()
+                .filter(sub -> sub.getId().equals(subId))
+                .findFirst().get();
+
+        subsRepository.delete(subToDelete);
+
+        return ResponseEntity.noContent().build();
+
+    }
+
+    public ResponseEntity<Object> updateSubscription(Long subId, NewsCategoryDTO newsCategory) {
+
+        Subscription subToUpdate = subsRepository.findById(subId).orElse(null);
+
+        if (subToUpdate == null) {
+            return new ResponseEntity<>("Subscription not found", HttpStatus.NOT_FOUND);
+        }
+
+        subToUpdate.getNewsCategory().setId(newsCategory.getId());
+        subToUpdate.getNewsCategory().setName(newsCategory.getName());
+
+        subsRepository.save(subToUpdate);
+
+        return ResponseEntity.ok("ok");
     }
 }

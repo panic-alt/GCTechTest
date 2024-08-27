@@ -11,8 +11,8 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @RequiredArgsConstructor
-public class UserSubscriptionDTO {
-
-    Long userSubscriptionId;
-    NewsCategoryDTO newsCategory;
+public class UserSubscriptionsListDTO {
+    private String username;
+    private String phoneNumber;
+    private List<UserSubscriptionDTO> subscriptionsList;
 }

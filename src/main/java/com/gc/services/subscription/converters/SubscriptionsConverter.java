@@ -2,6 +2,7 @@ package com.gc.services.subscription.converters;
 
 import com.gc.services.subscription.dtos.NewsCategoryDTO;
 import com.gc.services.subscription.dtos.UserSubscriptionDTO;
+import com.gc.services.subscription.dtos.UserSubscriptionsListDTO;
 import com.gc.services.subscription.entities.Subscription;
 import org.springframework.stereotype.Component;
 
@@ -10,21 +11,22 @@ import java.util.List;
 @Component
 public class SubscriptionsConverter {
 
-    public UserSubscriptionDTO entityListToDTO(List<Subscription> subscriptionList) {
+    public UserSubscriptionsListDTO entityListToDTOList(List<Subscription> subscriptionList) {
 
-            List<NewsCategoryDTO> newsCategoryDTOList = subscriptionList.stream()
-                    .map(subscription -> NewsCategoryDTO.builder()
-                            .id(subscription.getNewsCategory().getId())
-                            .name(subscription.getNewsCategory().getName())
-                            .build())
-                    .toList();
+        List<UserSubscriptionDTO> userSubscriptionDTOList = subscriptionList.stream()
+                .map(subscription -> UserSubscriptionDTO.builder()
+                        .userSubscriptionId(subscription.getId())
+                        .newsCategory(
+                                NewsCategoryDTO.builder()
+                                        .id(subscription.getNewsCategory().getId())
+                                        .name(subscription.getNewsCategory().getName())
+                                        .build())
+                        .build())
+                .toList();
 
-
-            return UserSubscriptionDTO.builder()
-                    .userSubscriptionId(subscriptionList.get(0).getId())
-                    .username(subscriptionList.get(0).getUser().getUsername())
-                    .phoneNumber(subscriptionList.get(0).getUser().getPhoneNumber())
-                    .newsCategories(newsCategoryDTOList)
-                    .build();
+        return UserSubscriptionsListDTO.builder()
+                .username(subscriptionList.get(0).getUser().getUsername())
+                .phoneNumber(subscriptionList.get(0).getUser().getPhoneNumber())
+                .subscriptionsList(userSubscriptionDTOList).build();
     }
 }
