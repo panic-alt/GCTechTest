@@ -33,12 +33,14 @@ public class AuthService {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(BodyMessage.MISSING_REQUIRED_FIELDS);
             }
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequestDTO.getUsername(), loginRequestDTO.getPassword()));
-            UserDetails user =  userRepository.findByUsername(loginRequestDTO.getUsername()).orElseThrow();
+            User user =  userRepository.findByUsername(loginRequestDTO.getUsername()).orElseThrow();
             String token = jwtService.getToken(user);
             AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
+                    .username(user.getUsername())
+                    .phoneNumber(user.getPhoneNumber())
                     .token(token)
                     .build();
-            return ResponseEntity.ok(authResponseDTO);
+            return new ResponseEntity<>(authResponseDTO, HttpStatus.OK);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
@@ -76,6 +78,8 @@ public class AuthService {
             userRepository.save(newUser);
 
             AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
+                    .username(newUser.getUsername())
+                    .phoneNumber(newUser.getPhoneNumber())
                     .token(jwtService.getToken(newUser))
                     .build();
 

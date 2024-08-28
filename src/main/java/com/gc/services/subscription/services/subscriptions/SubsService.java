@@ -7,6 +7,7 @@ import com.gc.services.subscription.dtos.UserSubscriptionsListDTO;
 import com.gc.services.subscription.entities.NewsCategory;
 import com.gc.services.subscription.entities.Subscription;
 import com.gc.services.subscription.entities.User;
+import com.gc.services.subscription.handlers.ResponseHandler;
 import com.gc.services.subscription.repositories.NewsCategoriesRepository;
 import com.gc.services.subscription.repositories.SubsRepository;
 import com.gc.services.subscription.repositories.UserRepository;
@@ -33,21 +34,21 @@ public class SubsService {
     public ResponseEntity<Object> createSubscriptions(SubscriptionDTO subscription) {
 
         if (subscription.getPhoneNumber() == null || subscription.getPhoneNumber().isEmpty()) {
-            return ResponseEntity.badRequest().body(BodyMessage.PHONE_NUMBER_REQUIRED);
+            return ResponseHandler.generateResponse(BodyMessage.PHONE_NUMBER_REQUIRED, HttpStatus.BAD_REQUEST, null);
         }
 
         if (!RegexUtil.validatePhoneNumber(subscription.getPhoneNumber())) {
-            return ResponseEntity.badRequest().body(BodyMessage.INVALID_PHONE_NUMBER);
+            return ResponseHandler.generateResponse(BodyMessage.INVALID_PHONE_NUMBER, HttpStatus.BAD_REQUEST, null);
         }
 
         if (subscription.getSubscriptions() == null || subscription.getSubscriptions().isEmpty()) {
-            return ResponseEntity.badRequest().body(BodyMessage.SUBS_REQUIRED);
+            return ResponseHandler.generateResponse(BodyMessage.SUBS_REQUIRED, HttpStatus.BAD_REQUEST, null);
         }
 
         Optional<User> userOptional = userRepository.findByPhoneNumber(subscription.getPhoneNumber());
 
         if (userOptional.isEmpty()) {
-            return new ResponseEntity<>(BodyMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+            return ResponseHandler.generateResponse(BodyMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND, null);
         }
 
         List<Long> subIds = subscription.getSubscriptions();
@@ -60,7 +61,7 @@ public class SubsService {
 
             subIds.removeAll(foundSubIds);
 
-            return new ResponseEntity<>("News category " + subIds + " does not exist", HttpStatus.NOT_FOUND);
+            return ResponseHandler.generateResponse("News category " + subIds + " does not exist", HttpStatus.NOT_FOUND, null);
 
         }
 
@@ -73,7 +74,7 @@ public class SubsService {
 
         subsRepository.saveAll(newSubscriptions);
 
-        return ResponseEntity.ok("Thanks for suscribing!");
+        return ResponseHandler.generateResponse("Thanks for suscribing", HttpStatus.OK, null);
     }
 
     public ResponseEntity<Object> getSubscriptions(String phoneNumber) {

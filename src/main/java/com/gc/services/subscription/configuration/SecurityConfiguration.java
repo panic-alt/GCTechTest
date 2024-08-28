@@ -37,6 +37,7 @@ public class SecurityConfiguration {
                        .requestMatchers(AUTH_WHITELIST).permitAll()
                        .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
                        .requestMatchers("/auth/**").permitAll()
+                       .requestMatchers("/api/**").permitAll()
                        .anyRequest().authenticated()
                ).sessionManagement(sessionManager -> sessionManager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                .authenticationProvider(authenticationProvider)
