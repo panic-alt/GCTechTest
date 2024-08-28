@@ -10,6 +10,7 @@ import com.gc.services.subscription.entities.User;
 import com.gc.services.subscription.repositories.NewsCategoriesRepository;
 import com.gc.services.subscription.repositories.SubsRepository;
 import com.gc.services.subscription.repositories.UserRepository;
+import com.gc.services.subscription.utils.BodyMessage;
 import com.gc.services.subscription.utils.RegexUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -32,21 +33,21 @@ public class SubsService {
     public ResponseEntity<Object> createSubscriptions(SubscriptionDTO subscription) {
 
         if (subscription.getPhoneNumber() == null || subscription.getPhoneNumber().isEmpty()) {
-            return ResponseEntity.badRequest().body("Phone number is required");
+            return ResponseEntity.badRequest().body(BodyMessage.PHONE_NUMBER_REQUIRED);
         }
 
         if (!RegexUtil.validatePhoneNumber(subscription.getPhoneNumber())) {
-            return ResponseEntity.badRequest().body("Invalid phone number");
+            return ResponseEntity.badRequest().body(BodyMessage.INVALID_PHONE_NUMBER);
         }
 
         if (subscription.getSubscriptions() == null || subscription.getSubscriptions().isEmpty()) {
-            return ResponseEntity.badRequest().body("Subscriptions are required");
+            return ResponseEntity.badRequest().body(BodyMessage.SUBS_REQUIRED);
         }
 
         Optional<User> userOptional = userRepository.findByPhoneNumber(subscription.getPhoneNumber());
 
         if (userOptional.isEmpty()) {
-            return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(BodyMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         List<Long> subIds = subscription.getSubscriptions();
@@ -72,18 +73,18 @@ public class SubsService {
 
         subsRepository.saveAll(newSubscriptions);
 
-        return ResponseEntity.ok("ok");
+        return ResponseEntity.ok("Thanks for suscribing!");
     }
 
     public ResponseEntity<Object> getSubscriptions(String phoneNumber) {
         if (!RegexUtil.validatePhoneNumber(phoneNumber)) {
-            return ResponseEntity.badRequest().body("Invalid phone number");
+            return ResponseEntity.badRequest().body(BodyMessage.INVALID_PHONE_NUMBER);
         }
 
         Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
 
         if (userOpt.isEmpty()) {
-            return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(BodyMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         User user = userOpt.get();
@@ -91,7 +92,7 @@ public class SubsService {
         List<Subscription> subscriptionList = subsRepository.findAllByUserId(user.getId());
 
         if (subscriptionList.isEmpty()) {
-            return new ResponseEntity<>("The user does not have any subscriptions", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(BodyMessage.SUBSCRIPTION_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         UserSubscriptionsListDTO dtoResponse =  subscriptionsConverter.entityListToDTOList(subscriptionList);
@@ -101,17 +102,21 @@ public class SubsService {
 
     public ResponseEntity<Object> deleteSubscription(Long subId, String phoneNumber) {
         if (!RegexUtil.validatePhoneNumber(phoneNumber)) {
-            return ResponseEntity.badRequest().body("Invalid phone number");
+            return ResponseEntity.badRequest().body(BodyMessage.INVALID_PHONE_NUMBER);
         }
 
         Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
 
         if (userOpt.isEmpty()) {
-            return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(BodyMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
         User user = userOpt.get();
 
         List<Subscription> subscriptionList = subsRepository.findAllByUserId(user.getId());
+
+        if (subscriptionList.isEmpty()) {
+            return new ResponseEntity<>(BodyMessage.SUBSCRIPTION_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
 
         Subscription subToDelete = subscriptionList.stream()
                 .filter(sub -> sub.getId().equals(subId))

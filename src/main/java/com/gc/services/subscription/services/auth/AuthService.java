@@ -6,6 +6,8 @@ import com.gc.services.subscription.dtos.RegisterRequestDTO;
 import com.gc.services.subscription.entities.User;
 import com.gc.services.subscription.repositories.UserRepository;
 import com.gc.services.subscription.services.JwtService;
+import com.gc.services.subscription.utils.BodyMessage;
+import com.gc.services.subscription.utils.RegexUtil;
 import com.gc.services.subscription.utils.enums.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,7 +30,7 @@ public class AuthService {
     public ResponseEntity<Object> login(LoginRequestDTO loginRequestDTO) {
         try {
             if (!validateLogin(loginRequestDTO)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Please make sure to complete all fields");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(BodyMessage.MISSING_REQUIRED_FIELDS);
             }
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequestDTO.getUsername(), loginRequestDTO.getPassword()));
             UserDetails user =  userRepository.findByUsername(loginRequestDTO.getUsername()).orElseThrow();
@@ -54,11 +56,15 @@ public class AuthService {
         try {
 
             if (userRepository.findByUsername(registerRequestDTO.getUsername()).isPresent()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User already exists");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(BodyMessage.USER_ALREADY_EXISTS);
             }
 
             if (!validateRegister(registerRequestDTO)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Please make sure to complete all fields");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(BodyMessage.MISSING_REQUIRED_FIELDS);
+            }
+
+            if (!RegexUtil.validatePhoneNumber(registerRequestDTO.getPhoneNumber())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(BodyMessage.INVALID_PHONE_NUMBER);
             }
 
             User newUser = User.builder()
