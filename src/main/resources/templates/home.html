@@ -44,20 +44,18 @@
             padding: 10px;
         }
         #phoneNumberInput {
-            width: 300px; /* Adjust width as needed */
-            height: 40px; /* Adjust height as needed */
-            font-size: 16px; /* Adjust font size as needed */
-            padding: 5px; /* Optional: Add padding inside the input */
+            width: 300px;
+            height: 40px;
+            font-size: 16px;
+            padding: 5px;
         }
-        #SubsTable {
-            margin: 20px;
-            width: 200%;
-            height: 200%;
+        #newsSubs {
+            width: 100%;
         }
     </style>
 </head>
 <body>
-<div>
+<div class="container">
     <div>
         <div class="col-12">
             <h1>Welcome to news subscription</h1>
@@ -65,7 +63,14 @@
         <div id="inputContainer" class="align-content-center col " >
             <div class="row">
                 <div class="col">
-                    <input type="text" id="phoneNumberInput" placeholder="+123456789" style="margin-bottom: 10px">
+                    <div class="row">
+                        <label class="form-check-label" for="phoneNumberInput">
+                            Phone number
+                        </label>
+                    </div>
+                    <div class="row">
+                        <input  type="text" id="phoneNumberInput" placeholder="+123456789" style="margin-bottom: 10px">
+                    </div>
                 </div>
             </div>
             <div class="form-check">
@@ -122,21 +127,18 @@
             </div>
         </div>
     </div>
-    <div id="newsSubs" class="col-6">
-        <table id="SubsTable" class="table">
-        </table>
+    <div class="row">
+        <div id="newsSubs" class="col table-responsive" style="margin-top: 30px">
+            <table id="SubsTable" class="table" style="width: 100%" >
+            </table>
+        </div>
     </div>
 </div>
+
 </body>
 <script>
     document.getElementById('getSubscriptions').addEventListener('click', getCurrentUserSubscriptions);
     document.getElementById('subscribe').addEventListener('click', newSubs);
-    document.getElementById('1').addEventListener('click', deleteSub);
-    document.getElementById('2').addEventListener('click', deleteSub);
-    document.getElementById('3').addEventListener('click', deleteSub);
-    document.getElementById('4').addEventListener('click', deleteSub);
-    document.getElementById('5').addEventListener('click', deleteSub);
-    document.getElementById('6').addEventListener('click', deleteSub);
 
     function newSubs() {
 
@@ -154,6 +156,7 @@
         for (let i = 0; i < checkBoxes.length; i++) {
             if (checkBoxes[i].checked) {
                 subscriptions.push(i+1);
+                checkBoxes[i].checked = false;
             }
         }
 
@@ -172,12 +175,13 @@
             },
             body: JSON.stringify(requestBody)
         }).then(response => response.json()
-            ).then(data => { alert(data.message)})
+            ).then(data => {
+                alert(data.message)})
     }
 
     function getCurrentUserSubscriptions() {
 
-        const { phoneNumber } = JSON.parse(localStorage.getItem('userData'));
+        const phoneNumber = document.getElementById('phoneNumberInput').value;
 
         fetch('http://localhost:8080/subs/subscriptions/' + phoneNumber, {
             method : 'GET',
@@ -185,7 +189,12 @@
                 'Authorization' : 'Bearer ' + localStorage.getItem('token')
             }
         }).then(response =>  response.json())
-            .then(data => {
+            .then(dataJson => {
+                const { data, status } = dataJson;
+                if (status !== 200) {
+                    alert(dataJson.message);
+                    return;
+                }
                 const { subscriptionsList } = data;
                 renderSubscriptions(subscriptionsList);
             })
@@ -195,9 +204,6 @@
         const container = document.getElementById('SubsTable');
 
         container.innerHTML = '';
-
-        const table = document.createElement('table');
-        table.style.margin = '0 auto';
 
 
         const headerRow = document.createElement('tr');
@@ -210,7 +216,7 @@
         headerRow.appendChild(header1);
         headerRow.appendChild(header2);
         headerRow.appendChild(header3);
-        table.appendChild(headerRow);
+        container.appendChild(headerRow);
 
         data.forEach(item => {
             const row = document.createElement('tr');
@@ -223,37 +229,26 @@
             cell2.textContent = item.newsCategory.name;
 
             const cell3 = document.createElement('td');
-            const button1 = document.createElement('button');
-            button1.innerHTML = '<i class="fa-solid fa-pencil">Edit</i>';
-            button1.title = 'Edit';
-            button1.className = "btn btn-primary btn-lg"
-            button1.style.padding = '10px'
-            button1.style.width = '50%'
-            button1.style.height = '50%'
-            button1.addEventListener('click', () => editSub(item.userSubscriptionId));
 
 
             const button2 = document.createElement('button');
             button2.innerHTML = '<i class="fa fa-trash">Delete</i>';
             button2.title = 'Delete';
-            button2.className = "btn btn-primary btn-lg"
+            button2.className = "btn btn-danger btn-sm"
             button2.id = item.newsCategory.id;
             button2.style.width = '50%'
             button2.style.height = '50%'
             button2.style.padding = '10px'
             button2.addEventListener('click', () => deleteSub(item.userSubscriptionId));
 
-            cell3.appendChild(button1);
             cell3.appendChild(button2);
 
             row.appendChild(cell1);
             row.appendChild(cell2);
             row.appendChild(cell3);
 
-            table.appendChild(row);
+            container.appendChild(row);
         });
-
-        container.appendChild(table);
     }
 
     function deleteSub(newsId) {
@@ -268,18 +263,19 @@
             headers: {
                 'Authorization' : 'Bearer ' + localStorage.getItem('token')
             }
-        }).then(response => { if (response.status === 204) {
-            removeRow(newsId)
-        }})
+        }).then(response =>
+            removeRow(newsId))
     }
 
     function removeRow(subscriptionId) {
+        console.log('entra')
         const table = document.getElementById('SubsTable');
         const rows = table.getElementsByTagName('tr');
-        for (let i = 1; i < rows.length; i++) { // Start from 1 to skip header row
+        for (let i = 1; i < rows.length; i++) {
             const cell = rows[i].getElementsByTagName('td')[0];
-            if (cell.textContent === subscriptionId) {
-                table.deleteRow(i); // Remove the row
+            let subscriptionIdStr = subscriptionId.toString();
+            if (cell.textContent === subscriptionIdStr) {
+                table.deleteRow(i);
                 break;
             }
         }

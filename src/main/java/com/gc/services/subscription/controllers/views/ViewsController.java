@@ -11,6 +11,11 @@ public class ViewsController {
         return "login";
     }
 
+    @GetMapping("api/register")
+    public String register() {
+        return "register";
+    }
+
     @GetMapping("api/home")
     public String home() {
         return "home";

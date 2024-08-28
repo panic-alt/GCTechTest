@@ -4,6 +4,7 @@ import com.gc.services.subscription.dtos.AuthResponseDTO;
 import com.gc.services.subscription.dtos.LoginRequestDTO;
 import com.gc.services.subscription.dtos.RegisterRequestDTO;
 import com.gc.services.subscription.entities.User;
+import com.gc.services.subscription.handlers.ResponseHandler;
 import com.gc.services.subscription.repositories.UserRepository;
 import com.gc.services.subscription.services.JwtService;
 import com.gc.services.subscription.utils.BodyMessage;
@@ -14,7 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -30,7 +30,7 @@ public class AuthService {
     public ResponseEntity<Object> login(LoginRequestDTO loginRequestDTO) {
         try {
             if (!validateLogin(loginRequestDTO)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(BodyMessage.MISSING_REQUIRED_FIELDS);
+                return ResponseHandler.generateResponse(BodyMessage.MISSING_REQUIRED_FIELDS,HttpStatus.BAD_REQUEST, null);
             }
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequestDTO.getUsername(), loginRequestDTO.getPassword()));
             User user =  userRepository.findByUsername(loginRequestDTO.getUsername()).orElseThrow();
@@ -40,9 +40,9 @@ public class AuthService {
                     .phoneNumber(user.getPhoneNumber())
                     .token(token)
                     .build();
-            return new ResponseEntity<>(authResponseDTO, HttpStatus.OK);
+            return ResponseHandler.generateResponse("Login Successful",HttpStatus.OK,authResponseDTO);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+            return ResponseHandler.generateResponse(e.getMessage(), HttpStatus.UNAUTHORIZED, null);
         }
 
     }
@@ -58,15 +58,15 @@ public class AuthService {
         try {
 
             if (userRepository.findByUsername(registerRequestDTO.getUsername()).isPresent()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(BodyMessage.USER_ALREADY_EXISTS);
+                return ResponseHandler.generateResponse(BodyMessage.USER_ALREADY_EXISTS, HttpStatus.BAD_REQUEST, null);
             }
 
             if (!validateRegister(registerRequestDTO)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(BodyMessage.MISSING_REQUIRED_FIELDS);
+                return ResponseHandler.generateResponse(BodyMessage.MISSING_REQUIRED_FIELDS, HttpStatus.BAD_REQUEST, null);
             }
 
             if (!RegexUtil.validatePhoneNumber(registerRequestDTO.getPhoneNumber())) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(BodyMessage.INVALID_PHONE_NUMBER);
+                return ResponseHandler.generateResponse(BodyMessage.INVALID_PHONE_NUMBER, HttpStatus.BAD_REQUEST, null);
             }
 
             User newUser = User.builder()
@@ -82,10 +82,9 @@ public class AuthService {
                     .phoneNumber(newUser.getPhoneNumber())
                     .token(jwtService.getToken(newUser))
                     .build();
-
-            return new ResponseEntity<>(authResponseDTO, HttpStatus.OK);
+            return ResponseHandler.generateResponse("Registration successful", HttpStatus.OK, authResponseDTO);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            return ResponseHandler.generateResponse(e.getMessage(), HttpStatus.BAD_REQUEST, null);
         }
     }
 

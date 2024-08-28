@@ -10,6 +10,7 @@ public class BodyMessage {
     public static final String SUBSCRIPTION_NOT_FOUND = "The user does not have any subscriptions";
     public static final String USER_ALREADY_EXISTS = "User already exists";
     public static final String MISSING_REQUIRED_FIELDS = "Please make sure to complete all fields";
+    public static final String ENTITY_CREATED = "Entity created";
 
 
 }

@@ -32,101 +32,111 @@ public class SubsService {
 
 
     public ResponseEntity<Object> createSubscriptions(SubscriptionDTO subscription) {
+        try {
+            if (subscription.getPhoneNumber() == null || subscription.getPhoneNumber().isEmpty()) {
+                return ResponseHandler.generateResponse(BodyMessage.PHONE_NUMBER_REQUIRED, HttpStatus.BAD_REQUEST, null);
+            }
 
-        if (subscription.getPhoneNumber() == null || subscription.getPhoneNumber().isEmpty()) {
-            return ResponseHandler.generateResponse(BodyMessage.PHONE_NUMBER_REQUIRED, HttpStatus.BAD_REQUEST, null);
-        }
+            if (!RegexUtil.validatePhoneNumber(subscription.getPhoneNumber())) {
+                return ResponseHandler.generateResponse(BodyMessage.INVALID_PHONE_NUMBER, HttpStatus.BAD_REQUEST, null);
+            }
 
-        if (!RegexUtil.validatePhoneNumber(subscription.getPhoneNumber())) {
-            return ResponseHandler.generateResponse(BodyMessage.INVALID_PHONE_NUMBER, HttpStatus.BAD_REQUEST, null);
-        }
+            if (subscription.getSubscriptions() == null || subscription.getSubscriptions().isEmpty()) {
+                return ResponseHandler.generateResponse(BodyMessage.SUBS_REQUIRED, HttpStatus.BAD_REQUEST, null);
+            }
 
-        if (subscription.getSubscriptions() == null || subscription.getSubscriptions().isEmpty()) {
-            return ResponseHandler.generateResponse(BodyMessage.SUBS_REQUIRED, HttpStatus.BAD_REQUEST, null);
-        }
+            Optional<User> userOptional = userRepository.findByPhoneNumber(subscription.getPhoneNumber());
 
-        Optional<User> userOptional = userRepository.findByPhoneNumber(subscription.getPhoneNumber());
+            if (userOptional.isEmpty()) {
+                return ResponseHandler.generateResponse(BodyMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND, null);
+            }
 
-        if (userOptional.isEmpty()) {
-            return ResponseHandler.generateResponse(BodyMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND, null);
-        }
+            List<Long> subIds = subscription.getSubscriptions();
+            List<NewsCategory> newsCategories = newsCategoriesRepository.findAllById(subIds);
 
-        List<Long> subIds = subscription.getSubscriptions();
-        List<NewsCategory> newsCategories = newsCategoriesRepository.findAllById(subIds);
+            if (newsCategories.size() != subIds.size()) {
+                List<Long> foundSubIds = newsCategories.stream()
+                        .map(NewsCategory::getId)
+                        .toList();
 
-        if (newsCategories.size() != subIds.size()) {
-            List<Long> foundSubIds = newsCategories.stream()
-                    .map(NewsCategory::getId)
+                subIds.removeAll(foundSubIds);
+
+                return ResponseHandler.generateResponse("News category " + subIds + " does not exist", HttpStatus.NOT_FOUND, null);
+
+            }
+
+            List<Subscription> newSubscriptions = newsCategories.stream()
+                    .map(newsCategory -> Subscription.builder()
+                            .user(userOptional.get())
+                            .newsCategory(newsCategory)
+                            .build())
                     .toList();
 
-            subIds.removeAll(foundSubIds);
+            subsRepository.saveAll(newSubscriptions);
 
-            return ResponseHandler.generateResponse("News category " + subIds + " does not exist", HttpStatus.NOT_FOUND, null);
-
+            return ResponseHandler.generateResponse("Thanks for suscribing", HttpStatus.OK, null);
+        } catch (Exception e) {
+            return ResponseHandler.generateResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, null);
         }
-
-        List<Subscription> newSubscriptions = newsCategories.stream()
-                .map(newsCategory -> Subscription.builder()
-                        .user(userOptional.get())
-                        .newsCategory(newsCategory)
-                        .build())
-                .toList();
-
-        subsRepository.saveAll(newSubscriptions);
-
-        return ResponseHandler.generateResponse("Thanks for suscribing", HttpStatus.OK, null);
     }
 
     public ResponseEntity<Object> getSubscriptions(String phoneNumber) {
-        if (!RegexUtil.validatePhoneNumber(phoneNumber)) {
-            return ResponseEntity.badRequest().body(BodyMessage.INVALID_PHONE_NUMBER);
+        try {
+            if (!RegexUtil.validatePhoneNumber(phoneNumber)) {
+                return ResponseHandler.generateResponse(BodyMessage.INVALID_PHONE_NUMBER, HttpStatus.BAD_REQUEST, null);
+            }
+
+            Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
+
+            if (userOpt.isEmpty()) {
+                return ResponseHandler.generateResponse(BodyMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND, null);
+            }
+
+            User user = userOpt.get();
+
+            List<Subscription> subscriptionList = subsRepository.findAllByUserId(user.getId());
+
+            if (subscriptionList.isEmpty()) {
+                return ResponseHandler.generateResponse(BodyMessage.SUBSCRIPTION_NOT_FOUND, HttpStatus.NOT_FOUND, null);
+            }
+
+            UserSubscriptionsListDTO dtoResponse =  subscriptionsConverter.entityListToDTOList(subscriptionList);
+
+            return ResponseHandler.generateResponse(BodyMessage.ENTITY_CREATED, HttpStatus.OK,dtoResponse);
+        } catch (Exception e) {
+            return ResponseHandler.generateResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, null);
         }
-
-        Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
-
-        if (userOpt.isEmpty()) {
-            return new ResponseEntity<>(BodyMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
-        }
-
-        User user = userOpt.get();
-
-        List<Subscription> subscriptionList = subsRepository.findAllByUserId(user.getId());
-
-        if (subscriptionList.isEmpty()) {
-            return new ResponseEntity<>(BodyMessage.SUBSCRIPTION_NOT_FOUND, HttpStatus.NOT_FOUND);
-        }
-
-        UserSubscriptionsListDTO dtoResponse =  subscriptionsConverter.entityListToDTOList(subscriptionList);
-
-        return new ResponseEntity<>(dtoResponse, HttpStatus.OK);
     }
 
     public ResponseEntity<Object> deleteSubscription(Long subId, String phoneNumber) {
-        if (!RegexUtil.validatePhoneNumber(phoneNumber)) {
-            return ResponseEntity.badRequest().body(BodyMessage.INVALID_PHONE_NUMBER);
+        try {
+            if (!RegexUtil.validatePhoneNumber(phoneNumber)) {
+                return ResponseEntity.badRequest().body(BodyMessage.INVALID_PHONE_NUMBER);
+            }
+
+            Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
+
+            if (userOpt.isEmpty()) {
+                return new ResponseEntity<>(BodyMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+            }
+            User user = userOpt.get();
+
+            List<Subscription> subscriptionList = subsRepository.findAllByUserId(user.getId());
+
+            if (subscriptionList.isEmpty()) {
+                return new ResponseEntity<>(BodyMessage.SUBSCRIPTION_NOT_FOUND, HttpStatus.NOT_FOUND);
+            }
+
+            Subscription subToDelete = subscriptionList.stream()
+                    .filter(sub -> sub.getId().equals(subId))
+                    .findFirst().get();
+
+            subsRepository.delete(subToDelete);
+
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseHandler.generateResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, null);
         }
-
-        Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
-
-        if (userOpt.isEmpty()) {
-            return new ResponseEntity<>(BodyMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
-        }
-        User user = userOpt.get();
-
-        List<Subscription> subscriptionList = subsRepository.findAllByUserId(user.getId());
-
-        if (subscriptionList.isEmpty()) {
-            return new ResponseEntity<>(BodyMessage.SUBSCRIPTION_NOT_FOUND, HttpStatus.NOT_FOUND);
-        }
-
-        Subscription subToDelete = subscriptionList.stream()
-                .filter(sub -> sub.getId().equals(subId))
-                .findFirst().get();
-
-        subsRepository.delete(subToDelete);
-
-        return ResponseEntity.noContent().build();
-
     }
 
     public ResponseEntity<Object> updateSubscription(Long subId, NewsCategoryDTO newsCategory) {

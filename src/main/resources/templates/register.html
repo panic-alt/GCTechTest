@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>News Subscription Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-container {
+      text-align: center;
+      border: 2px solid black;
+      padding: 20px;
+      width: 300px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .login-container h2 {
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: normal;
+    }
+    .login-container input[type="text"],
+    .login-container input[type="password"],
+    .login-container input[type="tel"] {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 2px solid black;
+      box-sizing: border-box;
+    }
+    .login-container button {
+      width: 100%;
+      padding: 10px;
+      background-color: #4d4dc2;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .login-container button:hover {
+      background-color: #3b3bb8;
+    }
+  </style>
+</head>
+<body>
+<div class="login-container">
+  <h2>Register a new user</h2>
+  <form action="#">
+    <input type="text" id="username" placeholder="USERNAME" required>
+    <input type="password" id="password" placeholder="PASSWORD" required>
+    <input type="tel" id="phoneNumber" placeholder="PHONE NUMBER (+123456789)" required>
+    <button id="loginButton" type="submit">REGISTER</button>
+  </form>
+  <script>
+    document.getElementById('loginButton').addEventListener('click', (event) => {
+      event.preventDefault();
+      login();
+    });
+
+    function login(){
+
+      const username =  document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const phoneNumber = document.getElementById('phoneNumber').value;
+
+      fetch('http://localhost:8080/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({username: username, password: password, phoneNumber})
+      })
+              .then(response =>
+                      response.json())
+              .then(data => {
+                if (data.status === 200) {
+                  localStorage.setItem('token', data.token)
+                  const userData = {
+                    username: data.username,
+                    phoneNumber: data.phoneNumber
+                  }
+                  localStorage.setItem('userData', JSON.stringify(userData))
+                  window.location.href = '/api/home';
+                } else {
+                  alert(data.message)
+                  return;
+                }
+              })
+              .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+              });
+    }
+  </script>
+</div>
+</body>
+</html>
