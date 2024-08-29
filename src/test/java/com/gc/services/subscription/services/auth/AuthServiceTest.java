@@ -6,6 +6,8 @@ import com.gc.services.subscription.dtos.RegisterRequestDTO;
 import com.gc.services.subscription.entities.User;
 import com.gc.services.subscription.repositories.UserRepository;
 import com.gc.services.subscription.services.JwtService;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -18,6 +20,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.lang.reflect.Type;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -52,6 +57,9 @@ class AuthServiceTest {
         loginRequestDTO.setPassword("password");
 
         User user = new User();
+        user.setUsername("testUser");
+        user.setPassword("password");
+        user.setPhoneNumber("+1234567890");
         when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(user));
         when(jwtService.getToken(any(UserDetails.class))).thenReturn("token");
 
@@ -61,9 +69,17 @@ class AuthServiceTest {
         verify(userRepository, times(1)).findByUsername(anyString());
         verify(jwtService, times(1)).getToken(any(UserDetails.class));
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue(response.getBody() instanceof AuthResponseDTO);
-        assertEquals("token", ((AuthResponseDTO) response.getBody()).getToken());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Login Successful", body.get("message"));
+        assertEquals(200, body.get("status"));
+
+        AuthResponseDTO data = (AuthResponseDTO) body.get("data");
+        assertNotNull(data);
+        assertEquals("testUser", data.getUsername());
+        assertEquals("+1234567890", data.getPhoneNumber());
+        assertEquals("token", data.getToken());
     }
 
     @Test
@@ -77,8 +93,12 @@ class AuthServiceTest {
 
         ResponseEntity<Object> response = authService.login(loginRequestDTO);
 
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals("Invalid credentials", response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Invalid credentials", body.get("message"));
+        assertEquals(401, body.get("status"));
+        assertNull(body.get("data"));
     }
 
     @Test
@@ -90,7 +110,14 @@ class AuthServiceTest {
         ResponseEntity<Object> response = authService.login(loginRequestDTO);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Please make sure to complete all fields", response.getBody());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Please make sure to complete all fields", body.get("message"));
+        assertEquals(400, body.get("status"));
+        assertNull(body.get("data"));
+
     }
 
     @Test
@@ -107,9 +134,18 @@ class AuthServiceTest {
         ResponseEntity<Object> response = authService.register(registerRequestDTO);
 
         verify(userRepository, times(1)).save(any(User.class));
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue(response.getBody() instanceof AuthResponseDTO);
-        assertEquals("token", ((AuthResponseDTO) response.getBody()).getToken());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Registration successful", body.get("message"));
+        assertEquals(200, body.get("status"));
+
+        AuthResponseDTO data = (AuthResponseDTO) body.get("data");
+        assertNotNull(data);
+        assertEquals("newUser", data.getUsername());
+        assertEquals("+1234567890", data.getPhoneNumber());
+        assertEquals("token", data.getToken());
     }
 
     @Test
@@ -124,8 +160,13 @@ class AuthServiceTest {
         ResponseEntity<Object> response = authService.register(registerRequestDTO);
 
         verify(userRepository, never()).save(any(User.class));
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("User already exists", response.getBody());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("User already exists", body.get("message"));
+        assertEquals(400, body.get("status"));
+        assertNull(body.get("data"));
     }
 
     @Test
@@ -137,8 +178,14 @@ class AuthServiceTest {
 
         ResponseEntity<Object> response = authService.register(registerRequestDTO);
 
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Please make sure to complete all fields", response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Please make sure to complete all fields", body.get("message"));
+        assertEquals(400, body.get("status"));
+        assertNull(body.get("data"));
+
+
     }
 
     @Test
@@ -153,7 +200,12 @@ class AuthServiceTest {
         ResponseEntity<Object> response = authService.register(registerRequestDTO);
 
         verify(userRepository, never()).save(any(User.class));
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Invalid phone number", response.getBody());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Invalid phone number", body.get("message"));
+        assertEquals(400, body.get("status"));
+        assertNull(body.get("data"));
     }
 }

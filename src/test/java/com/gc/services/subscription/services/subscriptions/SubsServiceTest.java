@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -87,8 +88,13 @@ class SubsServiceTest {
         ResponseEntity<Object> response = subsService.createSubscriptions(subscriptionDTO);
 
         verify(subsRepository, never()).saveAll(anyList());
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("User not found", response.getBody());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("User not found", body.get("message"));
+        assertEquals(404, body.get("status"));
+        assertNull(body.get("data"));
     }
 
     @Test
@@ -103,8 +109,13 @@ class SubsServiceTest {
         ResponseEntity<Object> response = subsService.createSubscriptions(subscriptionDTO);
 
         verify(subsRepository, never()).saveAll(anyList());
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Invalid phone number", response.getBody());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Invalid phone number", body.get("message"));
+        assertEquals(400, body.get("status"));
+        assertNull(body.get("data"));
     }
 
     @Test
@@ -125,8 +136,12 @@ class SubsServiceTest {
 
         ResponseEntity<Object> response = subsService.getSubscriptions(phoneNumber);
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(userSubscriptionsListDTO, response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Entity created", body.get("message"));
+        assertEquals(200, body.get("status"));
+        assertNotNull(body.get("data"));
     }
 
     @Test
@@ -135,8 +150,12 @@ class SubsServiceTest {
 
         ResponseEntity<Object> response = subsService.getSubscriptions("+1234567890");
 
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("User not found", response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("User not found", body.get("message"));
+        assertEquals(404, body.get("status"));
+        assertNull(body.get("data"));
     }
 
     @Test
@@ -148,8 +167,12 @@ class SubsServiceTest {
 
         ResponseEntity<Object> response = subsService.getSubscriptions("+1234567890");
 
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("The user does not have any subscriptions", response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("The user does not have any subscriptions", body.get("message"));
+        assertEquals(404, body.get("status"));
+        assertNull(body.get("data"));
     }
 
     @Test
@@ -179,7 +202,14 @@ class SubsServiceTest {
         when(userRepository.findByPhoneNumber(anyString())).thenReturn(Optional.of(user));
         when(subsRepository.findAllByUserId(anyLong())).thenReturn(new ArrayList<>());
 
-        assertThrows(Exception.class, () -> subsService.deleteSubscription(1L, phoneNumber));
+        ResponseEntity<Object> response = subsService.deleteSubscription(1L, phoneNumber);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("The user does not have any subscriptions", body.get("message"));
+        assertEquals(404, body.get("status"));
+        assertNull(body.get("data"));
     }
 
     @Test

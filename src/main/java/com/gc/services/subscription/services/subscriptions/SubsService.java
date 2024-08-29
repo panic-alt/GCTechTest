@@ -111,20 +111,20 @@ public class SubsService {
     public ResponseEntity<Object> deleteSubscription(Long subId, String phoneNumber) {
         try {
             if (!RegexUtil.validatePhoneNumber(phoneNumber)) {
-                return ResponseEntity.badRequest().body(BodyMessage.INVALID_PHONE_NUMBER);
+                return ResponseHandler.generateResponse(BodyMessage.INVALID_PHONE_NUMBER, HttpStatus.BAD_REQUEST, null);
             }
 
             Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
 
             if (userOpt.isEmpty()) {
-                return new ResponseEntity<>(BodyMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+                return ResponseHandler.generateResponse(BodyMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND, null);
             }
             User user = userOpt.get();
 
             List<Subscription> subscriptionList = subsRepository.findAllByUserId(user.getId());
 
             if (subscriptionList.isEmpty()) {
-                return new ResponseEntity<>(BodyMessage.SUBSCRIPTION_NOT_FOUND, HttpStatus.NOT_FOUND);
+                return ResponseHandler.generateResponse(BodyMessage.SUBSCRIPTION_NOT_FOUND, HttpStatus.NOT_FOUND, null);
             }
 
             Subscription subToDelete = subscriptionList.stream()
@@ -133,7 +133,7 @@ public class SubsService {
 
             subsRepository.delete(subToDelete);
 
-            return ResponseEntity.noContent().build();
+            return ResponseHandler.generateResponse("", HttpStatus.NO_CONTENT, null);
         } catch (Exception e) {
             return ResponseHandler.generateResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, null);
         }
